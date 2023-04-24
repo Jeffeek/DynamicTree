@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<nlog xmlns="http://www.nlog-project.org/schemas/NLog.xsd"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.nlog-project.org/schemas/NLog.xsd NLog.xsd"
+      autoReload="true"
+      throwExceptions="false"
+      internalLogFile="./logs/dynamictree.local.nlog.txt">
+
+  <extensions>
+    <add assembly="NLog.Web.AspNetCore"/>
+    <!--<add assembly="NLog.Targets.Seq"/>-->
+  </extensions>
+
+  <variable name="appName" value="DynamicTree"/>
+  <variable name="envir" value="local"/>
+  <variable name="logsDir" value="./logs"/>
+  <variable name="apiKey" value="__API_KEY_FOR_SEQ__"/>
+
+  <targets async="true">
+    <default-target-parameters xsi:type="File" archiveNumbering="Date" archiveDateFormat="yyyy-MM-dd" archiveEvery="Day" />
+
+    <target name="allMessageFile"
+            xsi:type="File"
+            fileName="${logsDir}\${appName}.${envir}.logs.txt"
+            archiveFileName="${logsDir}\backup\${appName}.${envir}.{########}.logs.txt"
+            archiveDateFormat="yyyy-MM-dd"
+            archiveEvery="Day"
+            archiveNumbering="Date"
+            maxArchiveDays="30"
+            layout="${longdate}|${aspnet-user-identity}|${threadid}|${uppercase:${level}}|${logger}|${message} ${exception:format=tostring}|url: ${aspnet-request-url}|action: ${aspnet-mvc-action}" />
+
+    <target name="errorsFile"
+            xsi:type="File"
+            fileName="${logsDir}\${appName}.${envir}.error.txt"
+            archiveFileName="${logsDir}\backup\${appName}.${envir}.{########}.error.txt"
+            archiveDateFormat="yyyy-MM-dd"
+            archiveEvery="Day"
+            archiveNumbering="Date"
+            maxArchiveDays="30"
+            layout="${longdate} ${aspnet-user-identity} [${threadid}] ${level:format=name:uppercase=true} ${logger} ${message} ${newLine} ${exception:maxInnerExceptionLevel=100:format=ToString:innerFormat=ToString:separator=&#13;&#10;  at:innerExceptionSeparator=&#13;&#10;  at}" />
+  </targets>
+
+  <!--
+  <targets>
+    <target name="seq" xsi:type="BufferingWrapper" bufferSize="1000" flushTimeout="2000">
+      <target xsi:type="Seq" serverUrl="${secUrl}" apiKey="${apiKey}">
+        <property name="Environment" value="${envir}" />
+        <property name="MethodName" value="${callsite:includeNamespace=false:includeSourcePath=false:className=false}" />
+        <property name="ClassName" value="${callsite:includeNamespace=false:includeSourcePath=false:methodName=false}" />
+        <property name="ThreadId" value="${threadid}" as="number" />
+        <property name="Level" value="${level:format=name:uppercase=true}" />
+        <property name="UserId" value="${mdlc:item=UserId}" />
+      </target>
+    </target>
+  </targets>
+ -->
+
+  <rules>
+    <!-- For SEQ system the number 262144 (256 KB) is default limits the size of individual events that Seq will accept at the logging endpoint, we take a bit less to ensure that we are in the limit -->
+<!--
+    <logger name="*" minlevel="Info" writeTo="seq" >
+      <filters>
+        <when condition="length('${message}') > 200000" action="Ignore" />
+      </filters>
+    </logger>
+-->
+    <logger name="*" minlevel="Error" maxlevel="Fatal" writeTo="errorsFile" />
+    <logger name="Microsoft.*" maxlevel="Info" final="true" /> <!-- BlackHole without writeTo -->
+    <logger name="*" minlevel="Info" writeTo="allMessageFile" />
+  </rules>
+</nlog>

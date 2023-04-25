@@ -40,7 +40,7 @@ public class CreateHandler : IRequestHandler<CreateRequest, Unit>
     private string GenerateText(CreateRequest request)
         => JsonConvert.SerializeObject(new
         {
-            RequestId = _httpContextAccessor.HttpContext.Connection.Id,
+            RequestId = GetRequestId(),
             _httpContextAccessor.HttpContext.Request.Path,
             RequestInfo = request.Request,
             request.Exception.StackTrace,
